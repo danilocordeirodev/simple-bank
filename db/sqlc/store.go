@@ -50,13 +50,13 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-func (store *Store) TranferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := store.execTX(ctx, func(q *Queries) error {
 		var err error
-
-		result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
+		
+		result.Transfer, err = q.CreateTransfer(context.Background(), CreateTransferParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
 			Amount:        arg.Amount,
@@ -78,10 +78,28 @@ func (store *Store) TranferTx(ctx context.Context, arg TransferTxParams) (Transf
 			AccountID: arg.ToAccountID,
 			Amount: arg.Amount,
 		})
-		
+
 		if err != nil {
 			return err
 		}
+	
+
+		result.FromAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID: arg.FromAccountID,
+			Amount: -arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+
+		result.ToAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID: arg.ToAccountID,
+			Amount: arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+
 
 		return nil
 	})
