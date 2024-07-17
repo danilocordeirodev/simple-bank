@@ -23,6 +23,9 @@ migratedown:
 migratedown1:
 	migrate -path db/migration -database "$(DB_URL)" -verbose down 1
 
+new_migration:
+	migrate create -ext sql -dir db/migration -seq $(name)
+
 sqlc:
 	sqlc generate
 
@@ -35,4 +38,4 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/danilocordeirodev/simple-bank/db/sqlc Store
 
-.PHONY: network postgres createdb dropdb migrateup migratedown sqlc test server mock migratedown1 migrateup1
+.PHONY: network postgres createdb dropdb migrateup migratedown sqlc test server mock migratedown1 migrateup1 new_migration
