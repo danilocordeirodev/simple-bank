@@ -12,10 +12,14 @@ type Config struct {
 	HttpServerAddress    string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	GrpcServerAddress    string        `mapstructure:"GRPC_SERVER_ADDRESS"`
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
-	AcessTokenDuration   time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	MigrationFilesPath   string        `mapstructure:"MIGRATION_FILES_PATH"`
 	Environment          string        `mapstructure:"ENVIRONMENT"`
+	RedisAddress         string        `mapstructure:"REDIS_ADDRESS"`
+	EmailSenderName      string        `mapstructure:"EMAIL_SENDER_NAME"`
+	EmailSenderAddress   string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
+	EmailSenderPassword  string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

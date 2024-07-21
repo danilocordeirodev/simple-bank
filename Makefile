@@ -2,8 +2,11 @@ DB_URL=postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable
 POSTGRES_CONTAINER_NAME=postgres-simple-bank
 POSTGRES_IMAGE=postgres:14-alpine
 
+network:
+	docker network create bank-network
+
 postgres:
-	docker run --name $(POSTGRES_CONTAINER_NAME) --network bank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d $(POSTGRES_IMAGE)
+	docker run --name $(POSTGRES_CONTAINER_NAME) -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d $(POSTGRES_IMAGE)
 
 createdb:
 	docker exec -it $(POSTGRES_CONTAINER_NAME) createdb --username=root --owner=root simple_bank
@@ -43,6 +46,7 @@ server:
 
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/danilocordeirodev/simple-bank/db/sqlc Store
+	mockgen -package mockwk -destination worker/mock/distributor.go github.com/danilocordeirodev/simple-bank/worker TaskDistributor
 
 proto:
 	rm -f pb/*.go
@@ -54,4 +58,7 @@ proto:
 	proto/*.proto
 	statik -src=./doc/swagger -dest=./doc
 
-.PHONY: network postgres createdb dropdb migrateup migratedown sqlc test server mock migratedown1 migrateup1 new_migration db_docs db_schema proto
+redis:
+	docker run --name redis -p 6379:6379 -d redis:7-alpine
+
+.PHONY: network postgres createdb dropdb migrateup migratedown sqlc test server mock migratedown1 migrateup1 new_migration db_docs db_schema proto redis

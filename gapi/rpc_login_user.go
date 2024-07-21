@@ -2,7 +2,7 @@ package gapi
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 
 	db "github.com/danilocordeirodev/simple-bank/db/sqlc"
 	"github.com/danilocordeirodev/simple-bank/pb"
@@ -22,7 +22,7 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 
 	user, err := server.store.GetUser(ctx, req.GetUsername())
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, db.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to find user")
@@ -35,7 +35,8 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 
 	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
 		user.Username,
-		server.config.AcessTokenDuration,
+		user.Role,
+		server.config.AccessTokenDuration,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create access token")
@@ -43,12 +44,13 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 
 	refreshToken, refreshPayload, err := server.tokenMaker.CreateToken(
 		user.Username,
+		user.Role,
 		server.config.RefreshTokenDuration,
 	)
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create refresh token")
 	}
+
 	mtdt := server.extractMetadata(ctx)
 	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           refreshPayload.ID,
@@ -57,9 +59,8 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		UserAgent:    mtdt.UserAgent,
 		ClientIp:     mtdt.ClientIP,
 		IsBlocked:    false,
-		ExpiresAt:    refreshPayload.ExpiresAt,
+		ExpiresAt:    refreshPayload.ExpiredAt,
 	})
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session")
 	}
@@ -69,10 +70,9 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		SessionId:             session.ID.String(),
 		AccessToken:           accessToken,
 		RefreshToken:          refreshToken,
-		AccessTokenExpiresAt:  timestamppb.New(accessPayload.ExpiresAt),
-		RefreshTokenExpiresAt: timestamppb.New(refreshPayload.ExpiresAt),
+		AccessTokenExpiresAt:  timestamppb.New(accessPayload.ExpiredAt),
+		RefreshTokenExpiresAt: timestamppb.New(refreshPayload.ExpiredAt),
 	}
-
 	return rsp, nil
 }
 
